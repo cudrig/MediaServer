@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="CENTER" spacing="20" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.miapp.mediaserver.WelcomeController">
+    <Label text="Bienvenido a MediaServer" style="-fx-font-size: 18px;"/>
+    <HBox spacing="20" alignment="CENTER">
+        <Button fx:id="loginButton" text="Iniciar Sesión" onAction="#handleLogin"/>
+        <Button fx:id="registerButton" text="Registrarse" onAction="#handleRegister"/>
+    </HBox>
+</VBox>

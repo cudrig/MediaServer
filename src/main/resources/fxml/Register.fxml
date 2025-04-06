@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="CENTER" spacing="20" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.miapp.mediaserver.RegisterController">
+    <Label text="Registrarse en MediaServer"/>
+    <TextField fx:id="usernameField" promptText="Nombre de usuario"/>
+    <TextField fx:id="emailField" promptText="Email"/>
+    <PasswordField fx:id="passwordField" promptText="Contraseña"/>
+    <HBox spacing="20" alignment="CENTER">
+        <Button fx:id="registerButton" text="Registrarse" onAction="#handleRegister"/>
+        <Button fx:id="backButton" text="Volver" onAction="#handleBack"/>
+    </HBox>
+    <Label fx:id="statusLabel" text=""/>
+</VBox>
