@@ -12,12 +12,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 
 public class LoginController {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
     private static final String BASE_URL = "http://localhost:8080/api/auth";
+    private static final String TOKEN_FILE = "token.txt";
     private final OkHttpClient client = new OkHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -39,6 +43,11 @@ public class LoginController {
     private void handleLogin() {
         String identifier = emailField.getText();
         String password = passwordField.getText();
+
+        if (identifier.isEmpty() || password.isEmpty()) {
+            statusLabel.setText("Rellene todos los campos");
+            return;
+        }
 
         String jsonEmail = String.format("{\"email\":\"%s\",\"password\":\"%s\"}", identifier, password);
         RequestBody bodyEmail = RequestBody.create(jsonEmail, MediaType.parse("application/json"));
@@ -77,9 +86,19 @@ public class LoginController {
         String responseBody = response.body().string();
         UserResponse user = mapper.readValue(responseBody, UserResponse.class);
         token = user.getToken();
-        logger.info("Login exitoso para: {}", emailField.getText());
+        saveToken(token); // Guardar el token
+        logger.info("Login exitoso para: {}, token: {}", emailField.getText(), token);
         statusLabel.setText("Login exitoso");
-        showServerRegistration();
+        showMainMenu();
+    }
+
+    private void saveToken(String token) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(TOKEN_FILE))) {
+            writer.write(token);
+            logger.info("Token guardado en {}", TOKEN_FILE);
+        } catch (IOException e) {
+            logger.error("Error al guardar el token", e);
+        }
     }
 
     @FXML
@@ -92,14 +111,31 @@ public class LoginController {
         stage.setTitle("MediaServer");
     }
 
-    private void showServerRegistration() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ServerRegistration.fxml"));
-        Parent root = loader.load();
-        ServerRegistrationController controller = loader.getController();
-        controller.setToken(token);
-        Stage stage = (Stage) loginButton.getScene().getWindow();
-        stage.setScene(new Scene(root, 400, 400));
-        stage.setTitle("MediaServer - Registro de Servidor");
+    private void showMainMenu() {
+        logger.info("Intentando mostrar MainMenu.fxml con token: {}", token);
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainMenu.fxml"));
+            if (loader.getLocation() == null) {
+                logger.error("No se pudo encontrar MainMenu.fxml en /fxml/MainMenu.fxml");
+                statusLabel.setText("Error: No se encontró MainMenu.fxml");
+                return;
+            }
+            Parent root = loader.load();
+            MainMenuController controller = loader.getController();
+            if (controller == null) {
+                logger.error("El controlador de MainMenu.fxml es null");
+                statusLabel.setText("Error: Controlador no inicializado");
+                return;
+            }
+            controller.setToken(token);
+            Stage stage = (Stage) loginButton.getScene().getWindow();
+            stage.setScene(new Scene(root, 400, 300));
+            stage.setTitle("MediaServer - Menú Principal");
+            logger.info("MainMenu.fxml mostrado exitosamente");
+        } catch (IOException e) {
+            logger.error("Error al cargar MainMenu.fxml", e);
+            statusLabel.setText("Error al cargar el menú principal");
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

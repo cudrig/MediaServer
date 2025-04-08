@@ -12,10 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.io.IOException;
 
 public class RegisterController {
-
     private static final Logger logger = LoggerFactory.getLogger(RegisterController.class);
     private static final String BASE_URL = "http://localhost:8080/api/auth";
     private final OkHttpClient client = new OkHttpClient();
@@ -24,6 +24,7 @@ public class RegisterController {
     @FXML private TextField usernameField;
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
+    @FXML private PasswordField confirmPasswordField;
     @FXML private Button registerButton;
     @FXML private Button backButton;
     @FXML private Label statusLabel;
@@ -33,6 +34,7 @@ public class RegisterController {
         usernameField.setOnKeyPressed(event -> { if (event.getCode() == KeyCode.ENTER) handleRegister(); });
         emailField.setOnKeyPressed(event -> { if (event.getCode() == KeyCode.ENTER) handleRegister(); });
         passwordField.setOnKeyPressed(event -> { if (event.getCode() == KeyCode.ENTER) handleRegister(); });
+        confirmPasswordField.setOnKeyPressed(event -> { if (event.getCode() == KeyCode.ENTER) handleRegister(); });
     }
 
     @FXML
@@ -40,9 +42,28 @@ public class RegisterController {
         String username = usernameField.getText();
         String email = emailField.getText();
         String password = passwordField.getText();
+        String confirmPassword = confirmPasswordField.getText();
 
-        String registerJson = String.format("{\"username\":\"%s\",\"email\":\"%s\",\"password\":\"%s\"}", 
-                username, email, password);
+        // Validaciones locales
+        if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+            statusLabel.setText("Rellene todos los campos");
+            return;
+        }
+        if (!email.matches(".*@.*\\..+")) {
+            statusLabel.setText("El email debe contener @ y un dominio válido (ej. .es, .com, .ru)");
+            return;
+        }
+        if (!password.equals(confirmPassword)) {
+            statusLabel.setText("Las contraseñas no coinciden");
+            return;
+        }
+        if (password.length() < 8 || !password.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%&]).*$")) {
+            statusLabel.setText("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial (!@#$%&)");
+            return;
+        }
+
+        String registerJson = String.format("{\"user\":{\"username\":\"%s\",\"email\":\"%s\",\"password\":\"%s\"},\"confirmPassword\":\"%s\"}",
+                username, email, password, confirmPassword);
         RequestBody registerBody = RequestBody.create(registerJson, MediaType.parse("application/json"));
         Request registerRequest = new Request.Builder()
                 .url(BASE_URL + "/register")
@@ -72,14 +93,13 @@ public class RegisterController {
                 .url(BASE_URL + "/login")
                 .post(loginBody)
                 .build();
-
         try (Response response = client.newCall(loginRequest).execute()) {
             if (response.isSuccessful()) {
                 String responseBody = response.body().string();
                 UserResponse user = mapper.readValue(responseBody, UserResponse.class);
                 String token = user.getToken();
                 logger.info("Login automático exitoso para: {}", email);
-                showServerRegistration(token);
+                showMainMenu(token);
             } else {
                 logger.warn("Login automático fallido para: {}", email);
                 statusLabel.setText("Registro OK, pero error al iniciar sesión");
@@ -97,20 +117,19 @@ public class RegisterController {
         stage.setTitle("MediaServer");
     }
 
-    private void showServerRegistration(String token) throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ServerRegistration.fxml"));
+    private void showMainMenu(String token) throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainMenu.fxml"));
         Parent root = loader.load();
-        ServerRegistrationController controller = loader.getController();
+        MainMenuController controller = loader.getController();
         controller.setToken(token);
         Stage stage = (Stage) registerButton.getScene().getWindow();
-        stage.setScene(new Scene(root, 400, 400));
-        stage.setTitle("MediaServer - Registro de Servidor");
+        stage.setScene(new Scene(root, 400, 300));
+        stage.setTitle("MediaServer - Menú Principal");
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UserResponse {
         private String token;
-
         public String getToken() { return token; }
         public void setToken(String token) { this.token = token; }
     }
